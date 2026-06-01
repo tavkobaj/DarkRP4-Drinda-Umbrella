@@ -1,6 +1,4 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
+<html lang="ru"><head>
     <meta charset="UTF-8">
     <title>Интерактивная карта — MapGenie DarkRP Style</title>
     <style>
@@ -111,8 +109,11 @@
         body.edit-mode .marker-wrapper.selected-marker .handle { display: block; }
 
         .filter-group { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
-        .filter-btn { padding: 5px 8px; font-size: 11px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: #ccc; cursor: pointer; transition: all 0.15s; }
+        .filter-btn { padding: 5px 8px; font-size: 11px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: #ccc; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 4px; }
         .filter-btn.active { background: var(--accent-color); color: white; border-color: var(--accent-color); }
+
+        /* Специальный контейнер для прокрутки фильтров, чтобы они не взрывали сайдбар */
+        .scrollable-filters { max-height: 240px; overflow-y: auto; padding-right: 3px; }
 
         /* HUD Блок управления положением */
         #hud-controls { position: absolute; bottom: 15px; right: 15px; display: flex; gap: 8px; align-items: center; z-index: 100; pointer-events: none; }
@@ -129,7 +130,7 @@
         .form-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 5px; color: #aaa; }
         .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid var(--border-color); background: var(--card-bg); color: white; border-radius: 6px; font-size: 14px; }
         
-        .marker-list { flex: 1; overflow-y: auto; padding: 10px; }
+        .marker-list { flex: 1; overflow-y: auto; padding: 10px; border-top: 1px solid var(--border-color); }
         .marker-item { display: flex; align-items: center; justify-content: space-between; padding: 10px; background: var(--card-bg); border-radius: 6px; margin-bottom: 6px; border: 1px solid var(--border-color); font-size: 13px; cursor: pointer; transition: background 0.15s; }
         .marker-item:hover { background: #2e2e30; }
         .marker-item.active-item { border-color: var(--success-color); background: #16261a; }
@@ -138,7 +139,7 @@
         .action-icon:hover { color: white; }
     </style>
 </head>
-<body>
+<body class="edit-mode">
 
     <div id="sidebar">
         <button id="sidebar-toggle" onclick="toggleSidebar()">◀</button>
@@ -149,8 +150,8 @@
 
         <div class="panel-section">
             <div class="mode-selector">
-                <div class="mode-tab active" id="mode-view" onclick="setAppMode('view')">👁️ Просмотр</div>
-                <div class="mode-tab" id="mode-edit" onclick="setAppMode('edit')">🛠️ Редактор</div>
+                <div class="mode-tab" id="mode-view" onclick="setAppMode('view')">👁️ Просмотр</div>
+                <div class="mode-tab active edit-active" id="mode-edit" onclick="setAppMode('edit')">🛠️ Редактор</div>
             </div>
 
             <div class="tabs">
@@ -158,21 +159,74 @@
                 <button class="tab-btn" id="btn-map-build" onclick="switchMap('build')">Строительство</button>
                 <button class="tab-btn" id="btn-map-crime" onclick="switchMap('crime')">Криминал</button>
             </div>
-            <button id="add-btn" class="btn" onclick="toggleAddMode()" style="display: none; margin-top: 5px;">➕ Поставить метку</button>
+            <button id="add-btn" class="btn" onclick="toggleAddMode()" style="display: block; margin-top: 5px;">➕ Поставить метку</button>
         </div>
 
-        <div class="panel-section" id="legend-container" style="max-height: 200px; overflow-y: auto;"></div>
+        <div class="panel-section" id="legend-container" style="max-height: 140px; overflow-y: auto;"><h4>Общая карта</h4><p style="font-size:12px; color:#888;">Кликни по маркеру на карте или в списке, чтобы отобразить его границы и правила.</p></div>
 
-        <div class="panel-section">
+        <div class="panel-section scrollable-filters">
+            <h4>Типы объектов <span class="bulk-actions" onclick="bulkFilters('type')">Вкл/Выкл все</span></h4>
+            <div class="filter-group" id="type-filters" style="margin-bottom: 12px;"><button class="filter-btn" id="ft-Вокзал" onclick="toggleFilter('type','Вокзал')"><span>🚉</span> <span>Вокзал</span></button><button class="filter-btn" id="ft-Поляна" onclick="toggleFilter('type','Поляна')"><span>🌿</span> <span>Поляна</span></button><button class="filter-btn" id="ft-Парк" onclick="toggleFilter('type','Парк')"><span>🌳</span> <span>Парк</span></button><button class="filter-btn" id="ft-Фонтан" onclick="toggleFilter('type','Фонтан')"><span>⛲</span> <span>Фонтан</span></button><button class="filter-btn" id="ft-ПУ" onclick="toggleFilter('type','ПУ')"><span>👮</span> <span>ПУ</span></button><button class="filter-btn" id="ft-Гараж" onclick="toggleFilter('type','Гараж')"><span>🚗</span> <span>Гараж</span></button><button class="filter-btn" id="ft-Многоэтажка" onclick="toggleFilter('type','Многоэтажка')"><span>🏢</span> <span>Многоэтажка</span></button><button class="filter-btn" id="ft-Заброшка" onclick="toggleFilter('type','Заброшка')"><span>🏚️</span> <span>Заброшка</span></button><button class="filter-btn" id="ft-Клуб" onclick="toggleFilter('type','Клуб')"><span>🎵</span> <span>Клуб</span></button><button class="filter-btn" id="ft-Люк/канализация" onclick="toggleFilter('type','Люк/канализация')"><span>🕳️</span> <span>Люк/канализация</span></button><button class="filter-btn" id="ft-Цемент" onclick="toggleFilter('type','Цемент')"><span>🧱</span> <span>Цемент</span></button><button class="filter-btn" id="ft-Точка захвата банд" onclick="toggleFilter('type','Точка захвата банд')"><span>⚔️</span> <span>Точка захвата банд</span></button><button class="filter-btn" id="ft-Закоулок/Переулок" onclick="toggleFilter('type','Закоулок/Переулок')"><span>🚪</span> <span>Закоулок/Переулок</span></button><button class="filter-btn" id="ft-Подземный переход" onclick="toggleFilter('type','Подземный переход')"><span>🚇</span> <span>Подземный переход</span></button><button class="filter-btn" id="ft-Амбрела" onclick="toggleFilter('type','Амбрела')"><span>☣️</span> <span>Амбрела</span></button><button class="filter-btn" id="ft-Лаборатория" onclick="toggleFilter('type','Лаборатория')"><span>🧪</span> <span>Лаборатория</span></button><button class="filter-btn" id="ft-Елитка" onclick="toggleFilter('type','Елитка')"><span>💎</span> <span>Елитка</span></button><button class="filter-btn" id="ft-Проезд" onclick="toggleFilter('type','Проезд')"><span>🛣️</span> <span>Проезд</span></button><button class="filter-btn" id="ft-Водоканал" onclick="toggleFilter('type','Водоканал')"><span>💧</span> <span>Водоканал</span></button><button class="filter-btn" id="ft-Скупщик наркотиков" onclick="toggleFilter('type','Скупщик наркотиков')"><span>💉</span> <span>Скупщик наркотиков</span></button><button class="filter-btn" id="ft-Бочка Амбрелы" onclick="toggleFilter('type','Бочка Амбрелы')"><span>🛢️</span> <span>Бочка Амбрелы</span></button><button class="filter-btn" id="ft-Графити" onclick="toggleFilter('type','Графити')"><span>🎨</span> <span>Графити</span></button></div>
+
             <h4>Фильтры Строительства <span class="bulk-actions" onclick="bulkFilters('build')">Вкл/Выкл все</span></h4>
-            <div class="filter-group" id="build-filters"></div>
-            <h4 style="margin-top:12px;">Фильтры Криминала <span class="bulk-actions" onclick="bulkFilters('crime')">Вкл/Выкл все</span></h4>
-            <div class="filter-group" id="crime-filters"></div>
+            <div class="filter-group" id="build-filters" style="margin-bottom: 12px;"><button class="filter-btn" id="fb-unmarked" onclick="toggleFilter('build','unmarked')">СЕРАЯ</button><button class="filter-btn" id="fb-red" onclick="toggleFilter('build','red')">RED</button><button class="filter-btn" id="fb-green" onclick="toggleFilter('build','green')">GREEN</button><button class="filter-btn" id="fb-blue" onclick="toggleFilter('build','blue')">BLUE</button><button class="filter-btn" id="fb-turquoise" onclick="toggleFilter('build','turquoise')">TURQUOISE</button><button class="filter-btn" id="fb-pink" onclick="toggleFilter('build','pink')">PINK</button><button class="filter-btn" id="fb-yellow" onclick="toggleFilter('build','yellow')">YELLOW</button><button class="filter-btn" id="fb-purple" onclick="toggleFilter('build','purple')">PURPLE</button></div>
+            
+            <h4>Фильтры Криминала <span class="bulk-actions" onclick="bulkFilters('crime')">Вкл/Выкл все</span></h4>
+            <div class="filter-group" id="crime-filters"><button class="filter-btn" id="fc-unmarked" onclick="toggleFilter('crime','unmarked')">СЕРАЯ КРИМ</button><button class="filter-btn" id="fc-blue" onclick="toggleFilter('crime','blue')">КРИМ: BLUE</button><button class="filter-btn" id="fc-yellow" onclick="toggleFilter('crime','yellow')">КРИМ: YELLOW</button></div>
         </div>
 
-        <div class="marker-list" id="markers-registry"></div>
+        <div class="marker-list" id="markers-registry">
+                    <div class="marker-item " onclick="toggleSelectMarker('m_1780320415934', true)">
+                        <span>👮 <b>Полицейский участок</b></span>
+                        <div class="actions-btns">
+                        <button class="action-icon" title="Редактировать параметры" onclick="event.stopPropagation(); openModalForEdit('m_1780320415934')">✏️</button>
+                        <button class="action-icon" style="color:var(--danger-color);" onclick="event.stopPropagation(); deleteMarker('m_1780320415934')">🗑️</button>
+                    </div>
+                    </div>
+                    <div class="marker-item " onclick="toggleSelectMarker('m_1780320534204', true)">
+                        <span>🚉 <b>Вокзал</b></span>
+                        <div class="actions-btns">
+                        <button class="action-icon" title="Редактировать параметры" onclick="event.stopPropagation(); openModalForEdit('m_1780320534204')">✏️</button>
+                        <button class="action-icon" style="color:var(--danger-color);" onclick="event.stopPropagation(); deleteMarker('m_1780320534204')">🗑️</button>
+                    </div>
+                    </div>
+                    <div class="marker-item " onclick="toggleSelectMarker('m_1780320651085', true)">
+                        <span>☣️ <b>Амбрела</b></span>
+                        <div class="actions-btns">
+                        <button class="action-icon" title="Редактировать параметры" onclick="event.stopPropagation(); openModalForEdit('m_1780320651085')">✏️</button>
+                        <button class="action-icon" style="color:var(--danger-color);" onclick="event.stopPropagation(); deleteMarker('m_1780320651085')">🗑️</button>
+                    </div>
+                    </div>
+                    <div class="marker-item " onclick="toggleSelectMarker('m_1780320711482', true)">
+                        <span>☣️ <b>Безымянный ориентир</b></span>
+                        <div class="actions-btns">
+                        <button class="action-icon" title="Редактировать параметры" onclick="event.stopPropagation(); openModalForEdit('m_1780320711482')">✏️</button>
+                        <button class="action-icon" style="color:var(--danger-color);" onclick="event.stopPropagation(); deleteMarker('m_1780320711482')">🗑️</button>
+                    </div>
+                    </div>
+                    <div class="marker-item " onclick="toggleSelectMarker('m_1780320769750', true)">
+                        <span>💎 <b>Безымянный ориентир</b></span>
+                        <div class="actions-btns">
+                        <button class="action-icon" title="Редактировать параметры" onclick="event.stopPropagation(); openModalForEdit('m_1780320769750')">✏️</button>
+                        <button class="action-icon" style="color:var(--danger-color);" onclick="event.stopPropagation(); deleteMarker('m_1780320769750')">🗑️</button>
+                    </div>
+                    </div>
+                    <div class="marker-item " onclick="toggleSelectMarker('m_1780320799991', true)">
+                        <span>💎 <b>Безымянный ориентир</b></span>
+                        <div class="actions-btns">
+                        <button class="action-icon" title="Редактировать параметры" onclick="event.stopPropagation(); openModalForEdit('m_1780320799991')">✏️</button>
+                        <button class="action-icon" style="color:var(--danger-color);" onclick="event.stopPropagation(); deleteMarker('m_1780320799991')">🗑️</button>
+                    </div>
+                    </div>
+                    <div class="marker-item active-item" onclick="toggleSelectMarker('m_1780328789961', true)">
+                        <span>🎵 <b>ВОТ! </b></span>
+                        <div class="actions-btns">
+                        <button class="action-icon" title="Редактировать параметры" onclick="event.stopPropagation(); openModalForEdit('m_1780328789961')">✏️</button>
+                        <button class="action-icon" style="color:var(--danger-color);" onclick="event.stopPropagation(); deleteMarker('m_1780328789961')">🗑️</button>
+                    </div>
+                    </div></div>
 
-        <div id="editor-footer" class="panel-section" style="border-top: 1px solid var(--border-color); display:none; flex-wrap:wrap; gap:5px; background: #151516;">
+        <div id="editor-footer" class="panel-section" style="border-top: 1px solid var(--border-color); display: flex; flex-wrap: wrap; gap: 5px; background: rgb(21, 21, 22);">
             <button class="btn secondary" style="width:48%; margin:0;" onclick="exportJSON()">Экспорт</button>
             <button class="btn secondary" style="width:48%; margin:0;" onclick="document.getElementById('import-file').click()">Импорт</button>
             <input type="file" id="import-file" style="display:none" onchange="importJSON(this)">
@@ -180,29 +234,69 @@
         </div>
     </div>
 
-    <div id="map-viewport" onmousedown="startPan(event)" onmousemove="doPan(event)" onmouseup="endPan(event)" onmouseleave="endPan(event)" oncontextmenu="handleRightClick(event)">
-        <div id="map-container">
+    <div id="map-viewport" onmousedown="startPan(event)" onmousemove="doPan(event)" onmouseup="endPan(event)" onmouseleave="endPan(event)" oncontextmenu="handleRightClick(event)" class="">
+        <div id="map-container" style="transform: translate(-5.93189px, -100.234px) scale(0.698803);">
             <div id="layer-main" class="map-layer active" style="background-image: url('map_main.png');"></div>
             <div id="layer-build" class="map-layer" style="background-image: url('map_build.png');"></div>
             <div id="layer-crime" class="map-layer" style="background-image: url('map_crime.png');"></div>
             
-            <div id="dynamic-elements"></div>
+            <div id="dynamic-elements"><div class="marker-wrapper " id="wrapper-m_1780320415934" style="left: 793.478px; top: 608.891px;">
+                    <div class="marker-icon" style="width:38px; height:38px; font-size:20.900000000000002px;" onmousedown="startMoveMarker(event, 'm_1780320415934')" onmouseenter="showTooltip(event, 'm_1780320415934')" onmouseleave="hideTooltip()">
+                        👮
+                    </div>
+                    
+                </div><div class="marker-wrapper " id="wrapper-m_1780320534204" style="left: 262.916px; top: 938.024px;">
+                    <div class="marker-icon" style="width:38px; height:38px; font-size:20.900000000000002px;" onmousedown="startMoveMarker(event, 'm_1780320534204')" onmouseenter="showTooltip(event, 'm_1780320534204')" onmouseleave="hideTooltip()">
+                        🚉
+                    </div>
+                    
+                </div><div class="marker-wrapper " id="wrapper-m_1780320651085" style="left: 1423.5px; top: 869.873px;">
+                    <div class="marker-icon" style="width:38px; height:38px; font-size:20.900000000000002px;" onmousedown="startMoveMarker(event, 'm_1780320651085')" onmouseenter="showTooltip(event, 'm_1780320651085')" onmouseleave="hideTooltip()">
+                        ☣️
+                    </div>
+                    
+                </div><div class="marker-wrapper " id="wrapper-m_1780320711482" style="left: 451.946px; top: 565.853px;">
+                    <div class="marker-icon" style="width:25px; height:25px; font-size:13.750000000000002px;" onmousedown="startMoveMarker(event, 'm_1780320711482')" onmouseenter="showTooltip(event, 'm_1780320711482')" onmouseleave="hideTooltip()">
+                        ☣️
+                    </div>
+                    
+                </div><div class="marker-wrapper " id="wrapper-m_1780320769750" style="left: 677.451px; top: 327.33px;">
+                    <div class="marker-icon" style="width:25px; height:25px; font-size:13.750000000000002px;" onmousedown="startMoveMarker(event, 'm_1780320769750')" onmouseenter="showTooltip(event, 'm_1780320769750')" onmouseleave="hideTooltip()">
+                        💎
+                    </div>
+                    
+                </div><div class="marker-wrapper " id="wrapper-m_1780320799991" style="left: 786.459px; top: 267.371px;">
+                    <div class="marker-icon" style="width:25px; height:25px; font-size:13.750000000000002px;" onmousedown="startMoveMarker(event, 'm_1780320799991')" onmouseenter="showTooltip(event, 'm_1780320799991')" onmouseleave="hideTooltip()">
+                        💎
+                    </div>
+                    
+                </div><div class="zone-shape" id="zone-m_1780328789961" style="background:#ff0000; opacity:0.1;left:668.2479951096615px; top:488.2528144002457px; width:160px; height:160px; border-radius:50%; transform: translate(-50%, -50%);"></div><div class="marker-wrapper selected-marker" id="wrapper-m_1780328789961" style="left: 668.248px; top: 488.253px;">
+                    <div class="marker-icon" style="width:32px; height:32px; font-size:17.6px;" onmousedown="startMoveMarker(event, 'm_1780328789961')" onmouseenter="showTooltip(event, 'm_1780328789961')" onmouseleave="hideTooltip()">
+                        🎵
+                    </div>
+                    <div class="handle" style="left:calc(50% + 80px); top:50%; transform:translate(-50%,-50%);" onmousedown="startResizeCircle(event, 'm_1780328789961')"></div>
+                </div></div>
         </div>
         
         <div id="hud-controls">
             <button id="reset-view-btn" onclick="resetView()">🎯 Сбросить вид</button>
-            <div id="coords-hud">X: 0 | Y: 0</div>
+            <div id="coords-hud">X: 23 | Y: 993</div>
         </div>
     </div>
 
-    <div class="custom-tooltip" id="tooltip"></div>
+    <div class="custom-tooltip" id="tooltip" style="display: none; left: 847px; top: 259px;">
+                <div style="font-weight:bold; font-size:14px; color:#ffcc00;">ВОТ! </div>
+                <div style="margin-top:4px; color:#e0e0e0; font-size:11px; white-space: pre-line;">не нужна база даных, в моём файле, где будут все метки, будут видны всем, потому-что они вписаны в код</div>
+                <span class="tooltip-tag" style="background:#555558; color:#fff;">Строительство: Серая зона (Не помечено — разрешены мелкие постройки)</span>
+                <span class="tooltip-tag" style="background:#777; color:#fff;">Криминал: Серая зона (Криминал разрешен сугубо БЕЗ свидетелей)</span>
+            </div>
 
-    <div class="modal-overlay" id="modal">
+    <div class="modal-overlay" id="modal" style="display: none;">
         <div class="modal">
-            <h3 id="modal-title" style="margin-bottom:15px;">Параметры точки</h3>
-            <input type="hidden" id="form-id">
-            <input type="hidden" id="form-x">
-            <input type="hidden" id="form-y">
+            <h3 id="modal-title" style="margin-bottom:15px;">Новая точка</h3>
+            <input type="hidden" id="form-id" value="">
+            <input type="hidden" id="form-x" value="668.2479951096615">
+            <input type="hidden" id="form-y" value="488.2528144002457">
 
             <div class="form-group">
                 <label>Название ориентира</label>
@@ -214,7 +308,7 @@
             </div>
             <div class="form-group">
                 <label>Тип маркера</label>
-                <select id="form-type"></select>
+                <select id="form-type"><option value="Вокзал">🚉 Вокзал</option><option value="Поляна">🌿 Поляна</option><option value="Парк">🌳 Парк</option><option value="Фонтан">⛲ Фонтан</option><option value="ПУ">👮 ПУ</option><option value="Гараж">🚗 Гараж</option><option value="Многоэтажка">🏢 Многоэтажка</option><option value="Заброшка">🏚️ Заброшка</option><option value="Клуб">🎵 Клуб</option><option value="Люк/канализация">🕳️ Люк/канализация</option><option value="Цемент">🧱 Цемент</option><option value="Точка захвата банд">⚔️ Точка захвата банд</option><option value="Закоулок/Переулок">🚪 Закоулок/Переулок</option><option value="Подземный переход">🚇 Подземный переход</option><option value="Амбрела">☣️ Амбрела</option><option value="Лаборатория">🧪 Лаборатория</option><option value="Елитка">💎 Елитка</option><option value="Проезд">🛣️ Проезд</option><option value="Водоканал">💧 Водоканал</option><option value="Скупщик наркотиков">💉 Скупщик наркотиков</option><option value="Бочка Амбрелы">🛢️ Бочка Амбрелы</option><option value="Графити">🎨 Графити</option></select>
             </div>
             <div class="form-group">
                 <label>Размер значка</label>
@@ -222,11 +316,11 @@
             </div>
             <div class="form-group">
                 <label>Зона строительства (Правило)</label>
-                <select id="form-tag-build"></select>
+                <select id="form-tag-build"><option value="unmarked">Серая зона (Не помечено — разрешены мелкие постройки)</option><option value="red">Красная зона (Дороги/Спавн. Строить запрещено)</option><option value="green">Зеленая зона (Общая доступность. Не занимать в соло)</option><option value="blue">Синяя зона (Только госструктуры с разрешения власти)</option><option value="turquoise">Бирюзовая зона (Придомовая. Только владельцам)</option><option value="pink">Розовая зона (Главные улицы. 10 мин инактива = снос)</option><option value="yellow">Желтая зона (Элитный квартал. Только жильцам)</option><option value="purple">Фиолетовая зона (Зона Umbrella Corporation)</option></select>
             </div>
             <div class="form-group">
                 <label>Криминальный статус зоны</label>
-                <select id="form-tag-crime"></select>
+                <select id="form-tag-crime"><option value="unmarked">Серая зона (Криминал разрешен сугубо БЕЗ свидетелей)</option><option value="blue">Синяя зона (Общественные места. Криминал ЗАПРЕЩЕН)</option><option value="yellow">Желтая зона (Опасный район/Гетто. Разрешено всегда)</option></select>
             </div>
             <div class="form-group" style="border-top:1px solid var(--border-color); padding-top:10px;">
                 <label>Отображение границ зоны</label>
@@ -236,7 +330,7 @@
                     <option value="rect">Прямоугольная зона</option>
                 </select>
             </div>
-            <div id="modal-zone-details" style="display:none;">
+            <div id="modal-zone-details" style="display: block;">
                 <div class="form-group">
                     <label>Цвет заливки границ</label>
                     <input type="color" id="form-zone-color" value="#ff0000">
@@ -255,7 +349,148 @@
     </div>
 
     <script>
-        const BASE_MARKERS = [];
+        const BASE_MARKERS = [
+  {
+    "id": "m_1780320415934",
+    "x": 793.4783896170613,
+    "y": 608.8906553478895,
+    "name": "Полицейский участок",
+    "desc": "ПУ",
+    "type": "ПУ",
+    "size": 38,
+    "tagBuild": "blue",
+    "tagCrime": "blue",
+    "zone": {
+      "type": "rect",
+      "color": "#0055ff",
+      "opacity": 0.3,
+      "radius": 80,
+      "left": -70.6761692418853,
+      "right": 71.07811835716029,
+      "top": -72.93178574507988,
+      "bottom": 65.41304494661824
+    }
+  },
+  {
+    "id": "m_1780320534204",
+    "x": 262.9155003109813,
+    "y": 938.0237697356936,
+    "name": "Вокзал",
+    "desc": "",
+    "type": "Вокзал",
+    "size": 38,
+    "tagBuild": "red",
+    "tagCrime": "blue",
+    "zone": {
+      "type": "rect",
+      "color": "#2bff00",
+      "opacity": 0.3,
+      "radius": 80,
+      "left": -60,
+      "right": 60,
+      "top": -58.84231929231021,
+      "bottom": 56.880908649233106
+    }
+  },
+  {
+    "id": "m_1780320651085",
+    "x": 1423.5027303919528,
+    "y": 869.8725710695737,
+    "name": "Амбрела",
+    "desc": "",
+    "type": "Амбрела",
+    "size": 38,
+    "tagBuild": "purple",
+    "tagCrime": "unmarked",
+    "zone": {
+      "type": "rect",
+      "color": "#d400ff",
+      "opacity": 0.3,
+      "radius": 80,
+      "left": -124.51034762252834,
+      "right": 166.01379683003756,
+      "top": -112.40517493700463,
+      "bottom": 190.22414220108476
+    }
+  },
+  {
+    "id": "m_1780320711482",
+    "x": 451.9457450416032,
+    "y": 565.8526656083571,
+    "name": "Безымянный ориентир",
+    "desc": "",
+    "type": "Амбрела",
+    "size": 25,
+    "tagBuild": "purple",
+    "tagCrime": "unmarked",
+    "zone": {
+      "type": "circle",
+      "color": "#d400ff",
+      "opacity": 0.3,
+      "radius": 42,
+      "left": -60,
+      "right": 60,
+      "top": -40,
+      "bottom": 40
+    }
+  },
+  {
+    "id": "m_1780320769750",
+    "x": 677.451339133862,
+    "y": 327.3299651717238,
+    "name": "Безымянный ориентир",
+    "desc": "",
+    "type": "Елитка",
+    "size": 25,
+    "tagBuild": "yellow",
+    "tagCrime": "blue",
+    "zone": {
+      "type": "rect",
+      "color": "#d4ff00",
+      "opacity": 0.3,
+      "radius": 80,
+      "left": -262.16867100807406,
+      "right": 256.50750380104853,
+      "top": -30.229678099652062,
+      "bottom": 116.75212620593038
+    }
+  },
+  {
+    "id": "m_1780320799991",
+    "x": 786.4591172646627,
+    "y": 267.37058886032014,
+    "name": "Безымянный ориентир",
+    "desc": "",
+    "type": "Елитка",
+    "size": 25,
+    "tagBuild": "yellow",
+    "tagCrime": "blue",
+    "zone": {
+      "type": "none"
+    }
+  },
+  {
+    "id": "m_1780328789961",
+    "x": 668.2479951096615,
+    "y": 488.2528144002457,
+    "name": "ВОТ! ",
+    "desc": "не нужна база даных, в моём файле, где будут все метки, будут видны всем, потому-что они вписаны в код",
+    "type": "Клуб",
+    "size": 32,
+    "tagBuild": "unmarked",
+    "tagCrime": "unmarked",
+    "zone": {
+      "type": "circle",
+      "color": "#ff0000",
+      "opacity": 0.1,
+      "radius": 80,
+      "left": -60,
+      "right": 60,
+      "top": -40,
+      "bottom": 40
+    }
+  }
+];
 
         const ICONS = {
             "Вокзал": "🚉", "Поляна": "🌿", "Парк": "🌳", "Фонтан": "⛲", "ПУ": "👮", 
@@ -293,16 +528,18 @@
         // Позиционирование карты по умолчанию
         let scale = 0.4, panX = 100, panY = 100;
         let isPanning = false, startX, startY;
-        let initMouseX = 0, initMouseY = 0; // Для отслеживания чистых кликов без сдвига
+        let initMouseX = 0, initMouseY = 0;
 
+        // Списки активных фильтров
         let activeBuildFilters = [];
         let activeCrimeFilters = [];
+        let activeTypeFilters = []; // НОВОЕ: хранилище фильтров по типам
 
         window.onload = function() {
             initDropdowns();
             renderLegend();
             renderFilters();
-            resetView(); // Ставим карту красиво при первой загрузке
+            resetView();
             renderMarkers();
 
             const viewport = document.getElementById('map-viewport');
@@ -394,15 +631,33 @@
         }
 
         function renderFilters() {
+            // Фільтри побудови
             const bf = document.getElementById('build-filters'); bf.innerHTML = '';
             for(let k in BUILD_TAGS) bf.innerHTML += `<button class="filter-btn" id="fb-${k}" onclick="toggleFilter('build','${k}')">${k === 'unmarked' ? 'СЕРАЯ' : k.toUpperCase()}</button>`;
+            
+            // Фільтри криміналу
             const cf = document.getElementById('crime-filters'); cf.innerHTML = '';
             for(let k in CRIME_TAGS) cf.innerHTML += `<button class="filter-btn" id="fc-${k}" onclick="toggleFilter('crime','${k}')">${k === 'unmarked' ? 'СЕРАЯ КРИМ' : 'КРИМ: ' + k.toUpperCase()}</button>`;
+
+            // НОВОЕ: Генерация фильтров типов (MapGenie стиль)
+            const tf = document.getElementById('type-filters'); tf.innerHTML = '';
+            for(let k in ICONS) {
+                tf.innerHTML += `<button class="filter-btn" id="ft-${k}" onclick="toggleFilter('type','${k}')"><span>${ICONS[k]}</span> <span>${k}</span></button>`;
+            }
         }
 
         function bulkFilters(type) {
-            const keys = type === 'build' ? Object.keys(BUILD_TAGS) : Object.keys(CRIME_TAGS);
-            const targetArr = type === 'build' ? activeBuildFilters : activeCrimeFilters;
+            let keys;
+            let targetArr;
+            let prefix;
+
+            if (type === 'build') {
+                keys = Object.keys(BUILD_TAGS); targetArr = activeBuildFilters; prefix = 'fb-';
+            } else if (type === 'crime') {
+                keys = Object.keys(CRIME_TAGS); targetArr = activeCrimeFilters; prefix = 'fc-';
+            } else {
+                keys = Object.keys(ICONS); targetArr = activeTypeFilters; prefix = 'ft-';
+            }
             
             if(targetArr.length === keys.length) {
                 targetArr.length = 0;
@@ -410,17 +665,22 @@
                 targetArr.length = 0; keys.forEach(k => targetArr.push(k));
             }
             keys.forEach(k => {
-                const el = document.getElementById(type === 'build' ? `fb-${k}` : `fc-${k}`);
-                el.classList.toggle('active', targetArr.includes(k));
+                const el = document.getElementById(`${prefix}${k}`);
+                if(el) el.classList.toggle('active', targetArr.includes(k));
             });
             renderMarkers();
         }
 
         function toggleFilter(type, key) {
-            let arr = type === 'build' ? activeBuildFilters : activeCrimeFilters;
+            let arr, prefix;
+            if (type === 'build') { arr = activeBuildFilters; prefix = 'fb-'; }
+            else if (type === 'crime') { arr = activeCrimeFilters; prefix = 'fc-'; }
+            else { arr = activeTypeFilters; prefix = 'ft-'; }
+
             let idx = arr.indexOf(key);
             if (idx > -1) arr.splice(idx, 1); else arr.push(key);
-            document.getElementById(type === 'build' ? `fb-${key}` : `fc-${key}`).classList.toggle('active');
+            
+            document.getElementById(`${prefix}${key}`).classList.toggle('active');
             renderMarkers();
         }
 
@@ -468,7 +728,6 @@
         function endPan(e) { 
             if (isPanning) {
                 isPanning = false;
-                // Различаем клик и перетягивание. Если сдвиг мыши мелкий — это просто сброс фокуса
                 let moveDist = Math.hypot(e.clientX - initMouseX, e.clientY - initMouseY);
                 if (moveDist < 4) {
                     activeMarkerId = null;
@@ -502,11 +761,10 @@
             renderMarkers();
         }
 
-        // Центрирование карты на выбранный ориентир
         function focusOnMarker(m) {
             const viewport = document.getElementById('map-viewport');
             const vRect = viewport.getBoundingClientRect();
-            scale = Math.max(scale, 0.75); // Приближаем для информативности, если зум мелкий
+            scale = Math.max(scale, 0.75);
             panX = (vRect.width / 2) - (m.x * scale);
             panY = (vRect.height / 2) - (m.y * scale);
             applyTransform();
@@ -518,8 +776,10 @@
             root.innerHTML = ''; registry.innerHTML = '';
 
             markers.forEach(m => {
+                // ПРОВЕРКА ФИЛЬТРОВ (Добавлена фильтрация по типу а-ля MapGenie)
                 if (activeBuildFilters.length > 0 && !activeBuildFilters.includes(m.tagBuild)) return;
                 if (activeCrimeFilters.length > 0 && !activeCrimeFilters.includes(m.tagCrime)) return;
+                if (activeTypeFilters.length > 0 && !activeTypeFilters.includes(m.type)) return; // НОВОЕ
                 if (searchQuery && !m.name.toLowerCase().includes(searchQuery) && !m.desc.toLowerCase().includes(searchQuery)) return;
 
                 const isSelected = (activeMarkerId === m.id);
@@ -597,7 +857,6 @@
                 if (Math.abs(ev.clientX - e.clientX) > 3 || Math.abs(ev.clientY - e.clientY) > 3) isDragged = true;
                 const dx = (ev.clientX - dragMouseX) / scale, dy = (ev.clientY - dragMouseY) / scale;
                 
-                // Ограничиваем перемещение размерами холста карты
                 m.x = Math.max(0, Math.min(2048, m.x + dx));
                 m.y = Math.max(0, Math.min(2048, m.y + dy));
                 
@@ -760,5 +1019,5 @@
             const a = document.createElement('a'); a.href = url; a.download = "server_map_release.html"; a.click();
         }
     </script>
-</body>
-</html>
+
+</body></html>
